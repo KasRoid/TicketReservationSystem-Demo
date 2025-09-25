@@ -39,12 +39,14 @@ cd seat-reservation
 npm install
 ```
 
-3. 환경변수 설정
+3. 환경변수 (선택)
 
-```bash
-cp .env.example .env
-# .env 파일 수정
-```
+- 기본값이 설정되어 별도 파일 없이 동작합니다.
+- 필요 시 아래 키로 `.env` 생성:
+  - `DB_TYPE`(mysql|postgres) 기본: mysql
+  - MySQL: `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME`
+  - Postgres: `PG_HOST` `PG_PORT` `PG_USER` `PG_PASSWORD` `PG_NAME`
+  - `LOG_LEVEL` 기본: info
 
 4. 데이터베이스 시작
 
@@ -55,7 +57,21 @@ npm run db:up
 5. 테스트 실행
 
 ```bash
+# 동시성 테스트(좌석 1개 동시 예매 → 정확히 1명 성공)
 npm test
+
+# 격리수준/현상 테스트(RU/RC/RR)
+npm run test:isolation
+
+# 락 전략 비교 테스트(행 락 vs 테이블 락)
+npm run test:locks
+```
+
+6. 초기 데이터 재적용(필요 시)
+
+```bash
+# 컨테이너 기동 후 좌석 데이터가 비어있다면 실행
+npm run db:seed
 ```
 
 ## 📁 프로젝트 구조
@@ -63,26 +79,26 @@ npm test
 ```
 seat-reservation/
 ├── docker-compose.yml      # Docker 설정
-├── package.json           # Node.js 설정
-├── .env                   # 환경변수
+├── package.json            # Node.js 설정
 ├── database/
-│   ├── 01-schema.sql     # DB 스키마
-│   └── 02-init-data.sql  # 초기 데이터
+│   ├── 01-schema.sql       # DB 스키마
+│   └── 02-init-data.sql    # 초기 데이터
 ├── src/
-│   ├── config/           # 설정 파일
-│   ├── services/         # 비즈니스 로직
-│   └── tests/            # 테스트 코드
-└── logs/                  # 로그 파일
+│   ├── config/             # 설정 파일
+│   └── services/           # 비즈니스 로직
+├── tests/                  # 테스트 코드
+├── logs/                   # 로그 파일
+└── .env (선택)             # 환경변수
 ```
 
 ## 🧪 테스트 시나리오
 
 ### 1. 격리 수준 테스트
 
-- READ UNCOMMITTED
-- READ COMMITTED
-- REPEATABLE READ
-- SERIALIZABLE
+- READ UNCOMMITTED (Dirty Read 가능)
+- READ COMMITTED (Non-repeatable/Phantom 가능)
+- REPEATABLE READ (Non-repeatable 완화, Phantom 관찰)
+- SERIALIZABLE (필요 시 확장 가능)
 
 ### 2. 동시성 문제 재현
 
@@ -92,8 +108,13 @@ seat-reservation/
 
 ### 3. 락 전략 비교
 
-- 비관적 락 (Pessimistic Lock)
-- 낙관적 락 (Optimistic Lock)
+- 비관적 락 (행 락/테이블 락 비교: `tests/lock-compare-test.js`)
+- 낙관적 락 (버전 컬럼 `seats.version`으로 충돌 방지)
+
+### 4. 지연 주입(경합 유도)
+
+- 서비스 호출 시 `delayMs` 옵션으로 트랜잭션 중간 지연 주입 가능
+- 예: `reserveSeat({ seatId, userId, isolation: 'RC', lock: 'row', delayMs: 500 })`
 
 ## 📊 실행 결과
 
@@ -113,6 +134,8 @@ seat-reservation/
 
 - Docker Desktop이 실행 중인지 확인
 - 포트 충돌 시 docker-compose.yml 수정
+
+- 초기 데이터가 비어있으면 `npm run db:seed` 실행
 
 ### MySQL 관련
 

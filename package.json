@@ -1,0 +1,26 @@
+{
+  "name": "seat-reservation-system",
+  "version": "1.0.0",
+  "description": "Database transaction and concurrency control practice",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node tests/concurrency-test.js",
+    "test:isolation": "node tests/isolation-test.js",
+    "test:locks": "node tests/lock-compare-test.js",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "db:seed": "docker compose exec -T mysql sh -lc \"mysql -udbuser -pdbpass1234 -D reservation_db -e 'SOURCE /docker-entrypoint-initdb.d/01-schema.sql; SOURCE /docker-entrypoint-initdb.d/02-init-data.sql;'\""
+  },
+  "dependencies": {
+    "mysql2": "^3.6.0",
+    "pg": "^8.11.0",
+    "dotenv": "^16.3.0",
+    "winston": "^3.10.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: seat-reservation-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: reservation_db
+      MYSQL_USER: dbuser
+      MYSQL_PASSWORD: dbpass1234
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --transaction-isolation=READ-COMMITTED
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+
+  postgres:
+    image: postgres:14
+    container_name: seat-reservation-pg
+    environment:
+      POSTGRES_USER: dbuser
+      POSTGRES_PASSWORD: dbpass1234
+      POSTGRES_DB: reservation_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./database/postgres:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dbuser']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+  postgres-data:
